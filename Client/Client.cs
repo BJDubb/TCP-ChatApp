@@ -13,6 +13,7 @@ namespace ChatApp.Client
 {
     public class Client
     {
+        public event Action<bool> OnConnectedToServer;
         public List<Message> messageQueue = new List<Message>();
         public List<Message> recievedMessages = new List<Message>();
         public TcpClient server = null;
@@ -26,9 +27,15 @@ namespace ChatApp.Client
         public void Connect()
         {
             server = new TcpClient();
-            try { server.Connect("127.0.0.1", 5050); }
-            catch (Exception e) { Console.WriteLine("Could not connect to server."); return; }
-            
+            try { server.Connect("bjdubb.com", 5050); }
+            catch (Exception e)
+            {
+                OnConnectedToServer(false);
+                return;
+            }
+
+            OnConnectedToServer(true);
+
             HandleServer();
         }
 

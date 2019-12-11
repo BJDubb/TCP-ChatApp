@@ -18,6 +18,12 @@ namespace ChatApp.Client
         public Main()
         {
             InitializeComponent();
+            client.OnConnectedToServer += OnConnectedToServer;
+        }
+
+        private void OnConnectedToServer(bool obj)
+        {
+            if (!obj) MessageBox.Show("Failed to connect to server.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
 
         private void connectButton_Click(object sender, EventArgs e)
