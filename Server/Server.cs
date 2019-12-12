@@ -13,6 +13,7 @@ namespace ChatApp.Server
     {
         public bool running = false;
         public TcpListener listener;
+        public List<Message> messageQueue = new List<Message>();
         public Dictionary<TcpClient, User> clients = new Dictionary<TcpClient, User>();
         System.Timers.Timer timer = null;
 
@@ -50,42 +51,69 @@ namespace ChatApp.Server
 
             while (true)
             {
-                if (stream.CanRead)
+                Recieve(client, stream);
+                Send(client, stream);
+                Thread.Sleep(1000);
+            }
+        }
+
+        private void Send(TcpClient client, NetworkStream stream)
+        {
+            if (stream.CanWrite)
+            {
+                if (messageQueue.Count > 0)
                 {
-                    if (stream.DataAvailable)
+                    byte[] data = Convert.ToByteArray(messageQueue[0]);
+                    stream.Write(data, 0, data.Length);
+                    stream.Flush();
+                    if (messageQueue[0].Type == "discon") DisconnectClient(client, stream);
+                    messageQueue.RemoveAt(0);
+                }
+            }
+        }
+
+        private void Recieve(TcpClient client, NetworkStream stream)
+        {
+            if (stream.CanRead)
+            {
+                if (stream.DataAvailable)
+                {
+                    Message message = Convert.ConvertMessage(stream);
+                    if (message.Type != null)
                     {
-                        Message message = Convert.ConvertMessage(stream);
-                        if (message.Type != null)
+                        switch (message.Type)
                         {
-                            switch (message.Type)
-                            {
-                                case "con":
-                                    Log(message.User.Username + " has Connected.", User.Server);
-                                    clients.Add(client, message.User);
-                                    BeginHeartbeat(stream);
-                                    break;
-                                case "discon":
-                                    Log(message.User.Username + " has Disconnected.", User.Server);
-                                    clients.Remove(client);
-                                    stream.Close();
-                                    client.Close();
-                                    break;
-                                case "hrt":
-                                    Log("heartbeat.", message.User);
-                                    break;
-                                case "msg":
-                                    Log(message.Content, message.User);
-                                    break;
-                                default:
-                                    Log("Error", message.User);
-                                    break;
-                            }
+                            case "con":
+                                Log(message.User.Username + " has Connected.", User.Server);
+                                clients.Add(client, message.User);
+                                BeginHeartbeat(stream);
+                                break;
+                            case "discon":
+                                Log(message.User.Username + " has Disconnected.", User.Server);
+                                DisconnectClient(client, stream);
+                                break;
+                            case "hrt":
+                                Log("heartbeat.", message.User);
+                                break;
+                            case "msg":
+                                messageQueue.Add(message);
+                                Log(message.Content, message.User);
+                                break;
+                            default:
+                                Log("Error", message.User);
+                                break;
                         }
                     }
                 }
             }
         }
 
+        private void DisconnectClient(TcpClient client, NetworkStream stream)
+        {
+            clients.Remove(client);
+            stream.Close();
+            client.Close();
+        }
 
         private void Heartbeat(TcpClient client)
         {
@@ -102,8 +130,9 @@ namespace ChatApp.Server
                         stream.Flush();
                         timer.Interval = 2000;
                     }
-                    catch
+                    catch (Exception e)
                     {
+                        Console.WriteLine(e);
                         var pair = clients.First(x => x.Key == client);
                         clients.Remove(pair.Key);
                         client.Close();

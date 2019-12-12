@@ -19,12 +19,32 @@ namespace ChatApp.Client
         {
             InitializeComponent();
             client.OnConnectedToServer += OnConnectedToServer;
+            client.UpdateMessages += UpdateMessages;
+        }
+
+        private void UpdateMessages(List<Message> messages)
+        {
+            foreach (var msg in messages)
+            {
+                var lvi = new ListViewItem(new string[] { msg.User.Username, msg.Content });
+                Invoke(new Action(() => { listView1.Items.Add(lvi); }));
+            }
         }
 
         private void OnConnectedToServer(bool obj)
         {
-            if (!obj) MessageBox.Show("Failed to connect to server.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            if (!obj)
+            {
+                MessageBox.Show("Failed to connect to server.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            else
+            {
+                Invoke(new Action(() => { connectButton.Enabled = false; }));
+            }
         }
+
+
+        
 
         private void connectButton_Click(object sender, EventArgs e)
         {
@@ -51,8 +71,6 @@ namespace ChatApp.Client
         private void Main_FormClosed(object sender, FormClosedEventArgs e)
         {
             Application.ExitThread();
-
-            Environment.Exit(0);
         }
     }
 }

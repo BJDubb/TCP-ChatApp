@@ -14,9 +14,11 @@ namespace ChatApp.Client
     public class Client
     {
         public event Action<bool> OnConnectedToServer;
+        public event Action<List<Message>> UpdateMessages;
         public List<Message> messageQueue = new List<Message>();
         public List<Message> recievedMessages = new List<Message>();
         public TcpClient server = null;
+        System.Timers.Timer timer = new System.Timers.Timer(5000);
 
         public void Start()
         {
@@ -28,11 +30,7 @@ namespace ChatApp.Client
         {
             server = new TcpClient();
             try { server.Connect("bjdubb.com", 5050); }
-            catch (Exception e)
-            {
-                OnConnectedToServer(false);
-                return;
-            }
+            catch (Exception e) { OnConnectedToServer(false); return; }
 
             OnConnectedToServer(true);
 
@@ -47,12 +45,18 @@ namespace ChatApp.Client
             stream.Write(data, 0, data.Length);
             stream.Flush();
 
+            timer.Elapsed += (s, e) => HeartbeatExpire();
+            timer.Start();
+
             while (server.Connected)
             {
                 RecieveMessage(stream);
                 SendMessage(stream);
+                UpdateMessages(recievedMessages);
+                recievedMessages = new List<Message>();
             }
         }
+
 
         private void RecieveMessage(NetworkStream stream)
         {
@@ -70,7 +74,11 @@ namespace ChatApp.Client
                                 server.Close();
                                 break;
                             case "hrt":
+                                timer.Interval = 5000;
                                 Console.WriteLine("Heartbeat");
+                                break;
+                            case "msg":
+                                recievedMessages.Add(message);
                                 break;
                             default:
                                 Console.WriteLine("Error");
@@ -95,5 +103,13 @@ namespace ChatApp.Client
                 }
             }
         }
+
+        private void HeartbeatExpire()
+        {
+            server.Close();
+            Console.WriteLine("Termnate");
+        }
+
+
     }
 }
