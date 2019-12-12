@@ -14,10 +14,15 @@ namespace ChatApp.Client
     public class Client
     {
         public event Action<bool> OnConnectedToServer;
-        public event Action<List<Message>> UpdateMessages;
+        public event Action OnDisconnectedFromServer;
+        public event Action<Message> UpdateMessages;
+        public event Action<List<User>> PopulateOnlineUsers;
         public List<Message> messageQueue = new List<Message>();
         public List<Message> recievedMessages = new List<Message>();
         public TcpClient server = null;
+        public User currentUser = null;
+        public string username;
+        public bool connected;
         System.Timers.Timer timer = new System.Timers.Timer(5000);
 
         public void Start()
@@ -29,7 +34,7 @@ namespace ChatApp.Client
         public void Connect()
         {
             server = new TcpClient();
-            try { server.Connect("bjdubb.com", 5050); }
+            try { server.Connect("192.168.0.53", 5050); }
             catch (Exception e) { OnConnectedToServer(false); return; }
 
             OnConnectedToServer(true);
@@ -40,7 +45,8 @@ namespace ChatApp.Client
         private void HandleServer()
         {
             NetworkStream stream = server.GetStream();
-            Message message = new Message("con", 0, 0, "", new User(0, "BJDubb")); // Needs to be changed for users
+            currentUser = new User(0, username);
+            Message message = new Message("con", 0, 0, "", currentUser, null); // Needs to be changed for users
             byte[] data = Convert.ToByteArray(message);
             stream.Write(data, 0, data.Length);
             stream.Flush();
@@ -52,9 +58,9 @@ namespace ChatApp.Client
             {
                 RecieveMessage(stream);
                 SendMessage(stream);
-                UpdateMessages(recievedMessages);
-                recievedMessages = new List<Message>();
+                Thread.Sleep(10);
             }
+            OnDisconnectedFromServer();
         }
 
 
@@ -75,10 +81,12 @@ namespace ChatApp.Client
                                 break;
                             case "hrt":
                                 timer.Interval = 5000;
+                                PopulateOnlineUsers(message.onlineUsers);
                                 Console.WriteLine("Heartbeat");
                                 break;
                             case "msg":
                                 recievedMessages.Add(message);
+                                UpdateMessages(message);
                                 break;
                             default:
                                 Console.WriteLine("Error");

@@ -35,11 +35,16 @@
             this.listView1 = new System.Windows.Forms.ListView();
             this.userHeader = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.messageHeader = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.textBox1 = new System.Windows.Forms.TextBox();
+            this.pictureBox1 = new System.Windows.Forms.PictureBox();
+            this.onlineUsers = new System.Windows.Forms.ListView();
+            this.columnHeader1 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
             this.SuspendLayout();
             // 
             // connectButton
             // 
-            this.connectButton.Location = new System.Drawing.Point(26, 38);
+            this.connectButton.Location = new System.Drawing.Point(41, 64);
             this.connectButton.Name = "connectButton";
             this.connectButton.Size = new System.Drawing.Size(75, 23);
             this.connectButton.TabIndex = 0;
@@ -49,7 +54,8 @@
             // 
             // disconnectButton
             // 
-            this.disconnectButton.Location = new System.Drawing.Point(26, 67);
+            this.disconnectButton.Enabled = false;
+            this.disconnectButton.Location = new System.Drawing.Point(41, 93);
             this.disconnectButton.Name = "disconnectButton";
             this.disconnectButton.Size = new System.Drawing.Size(75, 23);
             this.disconnectButton.TabIndex = 1;
@@ -59,11 +65,12 @@
             // 
             // messageButton
             // 
+            this.messageButton.Enabled = false;
             this.messageButton.Location = new System.Drawing.Point(669, 289);
             this.messageButton.Name = "messageButton";
             this.messageButton.Size = new System.Drawing.Size(75, 23);
             this.messageButton.TabIndex = 2;
-            this.messageButton.Text = "Message";
+            this.messageButton.Text = "Send";
             this.messageButton.UseVisualStyleBackColor = true;
             this.messageButton.Click += new System.EventHandler(this.MessageButton_Click);
             // 
@@ -98,11 +105,53 @@
             this.messageHeader.Text = "Message";
             this.messageHeader.Width = 450;
             // 
+            // textBox1
+            // 
+            this.textBox1.Location = new System.Drawing.Point(26, 38);
+            this.textBox1.Name = "textBox1";
+            this.textBox1.Size = new System.Drawing.Size(100, 20);
+            this.textBox1.TabIndex = 5;
+            this.textBox1.TextChanged += new System.EventHandler(this.textBox1_TextChanged);
+            // 
+            // pictureBox1
+            // 
+            this.pictureBox1.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.pictureBox1.Image = global::Client.Properties.Resources.DisconIco;
+            this.pictureBox1.InitialImage = global::Client.Properties.Resources.DisconIco;
+            this.pictureBox1.Location = new System.Drawing.Point(41, 360);
+            this.pictureBox1.Name = "pictureBox1";
+            this.pictureBox1.Size = new System.Drawing.Size(42, 42);
+            this.pictureBox1.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
+            this.pictureBox1.TabIndex = 6;
+            this.pictureBox1.TabStop = false;
+            // 
+            // onlineUsers
+            // 
+            this.onlineUsers.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
+            this.columnHeader1});
+            this.onlineUsers.HideSelection = false;
+            this.onlineUsers.Location = new System.Drawing.Point(26, 135);
+            this.onlineUsers.Name = "onlineUsers";
+            this.onlineUsers.Size = new System.Drawing.Size(121, 177);
+            this.onlineUsers.TabIndex = 7;
+            this.onlineUsers.UseCompatibleStateImageBehavior = false;
+            this.onlineUsers.View = System.Windows.Forms.View.Details;
+            // 
+            // columnHeader1
+            // 
+            this.columnHeader1.Text = "Online Users";
+            this.columnHeader1.Width = 116;
+            // 
             // Main
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(800, 450);
+            this.Controls.Add(this.onlineUsers);
+            this.Controls.Add(this.pictureBox1);
+            this.Controls.Add(this.textBox1);
             this.Controls.Add(this.listView1);
             this.Controls.Add(this.messageBox);
             this.Controls.Add(this.messageButton);
@@ -111,6 +160,7 @@
             this.Name = "Main";
             this.Text = "Form1";
             this.FormClosed += new System.Windows.Forms.FormClosedEventHandler(this.Main_FormClosed);
+            ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -125,6 +175,10 @@
         private System.Windows.Forms.ListView listView1;
         private System.Windows.Forms.ColumnHeader userHeader;
         private System.Windows.Forms.ColumnHeader messageHeader;
+        private System.Windows.Forms.TextBox textBox1;
+        private System.Windows.Forms.PictureBox pictureBox1;
+        private System.Windows.Forms.ListView onlineUsers;
+        private System.Windows.Forms.ColumnHeader columnHeader1;
     }
 }
 

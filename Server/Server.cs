@@ -1,6 +1,7 @@
 ﻿using ChatApp.Library;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
@@ -13,9 +14,7 @@ namespace ChatApp.Server
     {
         public bool running = false;
         public TcpListener listener;
-        public List<Message> messageQueue = new List<Message>();
-        public Dictionary<TcpClient, User> clients = new Dictionary<TcpClient, User>();
-        System.Timers.Timer timer = null;
+        public List<Client> clients = new List<Client>();
 
         public Server()
         {
@@ -37,66 +36,76 @@ namespace ChatApp.Server
                 clientThread.Name = "ClientThread";
                 Console.WriteLine("New Client");
                 clientThread.Start(client);
+                Thread.Sleep(10);
             }
         }
 
         private void HandleClient(object obj)
         {
-            TcpClient client = (TcpClient)obj;
-            NetworkStream stream = client.GetStream();
+            TcpClient TcpClient = (TcpClient)obj;
 
-            timer = new System.Timers.Timer(2000);
-            timer.Start();
-            timer.Elapsed += (sender, e) => Heartbeat(client);
+            Client client = new Client(TcpClient, TcpClient.GetStream(), new User(-1, null), new System.Timers.Timer(2000), new List<Message>());
+            clients.Add(client);
+
+            client.timer.Start();
+            client.timer.Elapsed += (sender, e) => Heartbeat(client);
+
 
             while (true)
             {
-                Recieve(client, stream);
-                Send(client, stream);
-                Thread.Sleep(1000);
+                Recieve(client);
+                Send(client);
+                Thread.Sleep(10);
             }
         }
 
-        private void Send(TcpClient client, NetworkStream stream)
+        private void Send(Client client)
         {
-            if (stream.CanWrite)
+            if (client.stream.CanWrite)
             {
-                if (messageQueue.Count > 0)
+                if (client.messageQueue.Count > 0)
                 {
-                    byte[] data = Convert.ToByteArray(messageQueue[0]);
-                    stream.Write(data, 0, data.Length);
-                    stream.Flush();
-                    if (messageQueue[0].Type == "discon") DisconnectClient(client, stream);
-                    messageQueue.RemoveAt(0);
+                    Debug.WriteLine(client.messageQueue.Count);
+
+                    
+                    byte[] data = Convert.ToByteArray(client.messageQueue[0]);
+                    client.stream.Write(data, 0, data.Length);
+                    client.stream.Flush();
+                   
+                    if (client.messageQueue[0].Type == "discon") DisconnectClient(client);
+                    client.messageQueue.RemoveAt(0);
                 }
             }
         }
 
-        private void Recieve(TcpClient client, NetworkStream stream)
+        private void Recieve(Client client)
         {
-            if (stream.CanRead)
+            if (client.stream.CanRead)
             {
-                if (stream.DataAvailable)
+                if (client.stream.DataAvailable)
                 {
-                    Message message = Convert.ConvertMessage(stream);
+                    Message message = Convert.ConvertMessage(client.stream);
                     if (message.Type != null)
                     {
                         switch (message.Type)
                         {
                             case "con":
                                 Log(message.User.Username + " has Connected.", User.Server);
-                                clients.Add(client, message.User);
-                                BeginHeartbeat(stream);
+                                client.user = message.User;
+                                BeginHeartbeat(client);
                                 break;
                             case "discon":
                                 Log(message.User.Username + " has Disconnected.", User.Server);
-                                DisconnectClient(client, stream);
+                                DisconnectClient(client);
                                 break;
                             case "hrt":
                                 Log("heartbeat.", message.User);
                                 break;
                             case "msg":
-                                messageQueue.Add(message);
+                                foreach (var c in clients)
+                                {
+                                    c.messageQueue.Add(message);
+                                }
                                 Log(message.Content, message.User);
                                 break;
                             default:
@@ -108,46 +117,53 @@ namespace ChatApp.Server
             }
         }
 
-        private void DisconnectClient(TcpClient client, NetworkStream stream)
+        private void DisconnectClient(Client client)
         {
             clients.Remove(client);
-            stream.Close();
-            client.Close();
+            client.client.Close();
         }
 
-        private void Heartbeat(TcpClient client)
+        private void Heartbeat(Client client)
         {
-            if (client.Connected)
+            if (client.client.Connected)
             {
-                NetworkStream stream = client.GetStream();
-                if (stream.CanWrite)
+                if (client.stream.CanWrite)
                 {
                     try
                     {
-                        Message message = new Message("hrt", 0, 0, "", User.Server);
+                        List<User> users = new List<User>();
+                        for (int i = 0; i < clients.Count; i++)
+                        {
+                            users.Add(clients[i].user);
+                        }
+                        Message message = new Message("hrt", 0, 0, "", User.Server, users);
                         byte[] data = Convert.ToByteArray(message);
-                        stream.Write(data, 0, data.Length);
-                        stream.Flush();
-                        timer.Interval = 2000;
+                        client.stream.Write(data, 0, data.Length);
+                        client.stream.Flush();
+                        client.timer.Interval = 2000;
                     }
                     catch (Exception e)
                     {
                         Console.WriteLine(e);
-                        var pair = clients.First(x => x.Key == client);
-                        clients.Remove(pair.Key);
-                        client.Close();
-                        Log(pair.Value.Username + " timed out", User.Server);
+                        clients.Remove(client);
+                        client.client.Close();
+                        Log(client.user.Username + " timed out", User.Server);
                     }
                 }
             }
         }
 
-        private void BeginHeartbeat(NetworkStream stream)
+        private void BeginHeartbeat(Client client)
         {
-            Message message = new Message("hrt", 0, 0, "", User.Server);
+            List<User> users = new List<User>();
+            for (int i = 0; i < clients.Count; i++)
+            {
+                users.Add(clients[i].user);
+            }
+            Message message = new Message("hrt", 0, 0, "", User.Server, users);
             byte[] data = Convert.ToByteArray(message);
-            stream.Write(data, 0, data.Length);
-            stream.Flush();
+            client.stream.Write(data, 0, data.Length);
+            client.stream.Flush();
         }
 
         private void Log(string message, User user = null)
