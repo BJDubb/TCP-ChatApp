@@ -13,39 +13,51 @@ namespace ChatApp.Client
 {
     public class Client
     {
-        public event Action<bool> OnConnectedToServer;
+        public event Action OnConnectedToServer;
         public event Action OnDisconnectedFromServer;
+        public event Action OnFailedToConnectToServer;
         public event Action<Message> UpdateMessages;
         public event Action<List<User>> PopulateOnlineUsers;
+
         public List<Message> messageQueue = new List<Message>();
         public List<Message> recievedMessages = new List<Message>();
+        public List<User> onlineUsers = new List<User>();
+
         public TcpClient server = null;
         public User currentUser = null;
+
         public string username;
         public bool connected;
+
         System.Timers.Timer timer = new System.Timers.Timer(5000);
 
         public void Start()
         {
-            Thread clientThread = new Thread(new ThreadStart(Connect));
-            clientThread.Start();
+            Thread thread = new Thread(new ThreadStart(Connect));
+            thread.Name = "ClientThread";
+            thread.Start();
         }
 
         public void Connect()
         {
             server = new TcpClient();
-            try { server.Connect("192.168.0.53", 5050); }
-            catch (Exception e) { OnConnectedToServer(false); return; }
+            try { server.Connect("bjdubb.com", 5050); }
+            catch (Exception) { OnFailedToConnectToServer(); return; }
 
-            OnConnectedToServer(true);
+            OnConnectedToServer();
 
             HandleServer();
         }
 
+        public void Stop()
+        {
+            Environment.Exit(0);
+        }
+
+
         private void HandleServer()
         {
             NetworkStream stream = server.GetStream();
-            currentUser = new User(0, username);
             Message message = new Message("con", 0, 0, "", currentUser, null); // Needs to be changed for users
             byte[] data = Convert.ToByteArray(message);
             stream.Write(data, 0, data.Length);

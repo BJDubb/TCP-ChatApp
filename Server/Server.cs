@@ -15,6 +15,7 @@ namespace ChatApp.Server
         public bool running = false;
         public TcpListener listener;
         public List<Client> clients = new List<Client>();
+        public List<Message> publicMessages = new List<Message>();
 
         public Server()
         {
@@ -57,6 +58,16 @@ namespace ChatApp.Server
                 Send(client);
                 Thread.Sleep(10);
             }
+        }
+
+        public void Stop()
+        {
+            foreach (var client in clients)
+            {
+                client.client.Close();
+            }
+            Log("Stopping...", User.Server);
+            Environment.Exit(0);
         }
 
         private void Send(Client client)
@@ -102,11 +113,8 @@ namespace ChatApp.Server
                                 Log("heartbeat.", message.User);
                                 break;
                             case "msg":
-                                foreach (var c in clients)
-                                {
-                                    c.messageQueue.Add(message);
-                                }
-                                Log(message.Content, message.User);
+                                HandleMessage(message);
+
                                 break;
                             default:
                                 Log("Error", message.User);
@@ -114,6 +122,23 @@ namespace ChatApp.Server
                         }
                     }
                 }
+            }
+        }
+
+        private void HandleMessage(Message message)
+        {
+            if (message.ToID == 0)
+            {
+                foreach (var c in clients)
+                {
+                    c.messageQueue.Add(message);
+                }
+                Log(message.Content, message.User);
+                publicMessages.Add(message);
+            }
+            else
+            {
+                clients.Find(x => x.user.ID == message.ToID).messageQueue.Add(message);
             }
         }
 
@@ -142,9 +167,8 @@ namespace ChatApp.Server
                         client.stream.Flush();
                         client.timer.Interval = 2000;
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
-                        Console.WriteLine(e);
                         clients.Remove(client);
                         client.client.Close();
                         Log(client.user.Username + " timed out", User.Server);
@@ -166,14 +190,10 @@ namespace ChatApp.Server
             client.stream.Flush();
         }
 
-        private void Log(string message, User user = null)
+        public void Log(string message, User user = null)
         {
             user = user ?? new User(0, "Default");
             Console.WriteLine($"[{DateTime.Now}] [{user.Username}] : {message}");
         }
-
-        
-
     }
-
 }
